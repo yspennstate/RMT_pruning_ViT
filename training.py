@@ -4,13 +4,10 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
-def fine_tune_model_2(
-    model, i, full_dataloader, epochs, lr, l1_lambda, weight_decay, linf_errors
-):
+def fine_tune_model(model, i, epochs, lr, l1_lambda, weight_decay, linf_errors):
     model.train()
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
-    criterion = nn.CrossEntropyLoss()
 
     for epoch in range(epochs):
         optimizer.zero_grad()
