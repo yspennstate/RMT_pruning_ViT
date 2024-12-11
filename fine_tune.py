@@ -8,8 +8,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.datasets as datasets
 from torch.utils.data import DataLoader
-from pruning import freeze_pruned_weights, replace_layers
-from validation import evaluate
+from src.pruning import freeze_pruned_weights, replace_layers
+from src.validation import evaluate
 import timm
 import argparse
 import os
