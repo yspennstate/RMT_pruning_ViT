@@ -5,12 +5,9 @@
 import json
 import matplotlib.pyplot as plt
 import random
-from random import shuffle
 import math
 import numpy as np
 import pandas as pd
-from PIL import Image
-import glob
 import os
 from tqdm.notebook import tqdm as tqdm
 import seaborn as sns
@@ -21,7 +18,7 @@ from torchvision import datasets
 from torchvision.models.vision_transformer import vit_b_16
 from torchvision.models import ViT_B_16_Weights
 import torch.optim as optim
-from torch.utils.data import DataLoader, Subset, Dataset
+from torch.utils.data import DataLoader, Subset
 import timm  # type: ignore
 
 
@@ -638,87 +635,6 @@ print(f"Validation set size: {len(val_subset)}")
 print(
     f"Training set size: {len(train_subset)}"
 )  # Should be about 1% of the validation set size
-
-
-def count_approx_zero_params(layer, threshold=1e-6):
-    total_nonzero = 0
-    for param in layer.parameters():
-        if param.requires_grad:
-            # Use a threshold to count weights that are nearly zero as zero
-            total_nonzero += torch.sum(torch.abs(param.data) > threshold).item()
-    return total_nonzero
-
-
-def calculate_lasso_strength(linf_error):
-    # Define the logic for calculating lasso strength
-    return linf_error
-
-
-def freeze_pruned_weights(model):
-    # Define the logic for freezing pruned weights
-    pass
-
-
-# Fine-tune the model with 10% data training and 90% without data
-def fine_tune_model_2(
-    model, i, train_dataloader, epochs, lr, l1_lambda, weight_decay, linf_errors
-):
-    model.train()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    criterion = torch.nn.CrossEntropyLoss()
-
-    for epoch in range(epochs):
-        epoch_loss = 0
-        for inputs, labels in train_dataloader:
-            inputs, labels = inputs.to(device), labels.to(device)
-            optimizer.zero_grad()
-
-            # Determine if we should use data (10% chance)
-            if random.random() < 0.10:
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
-            else:
-                loss = 0  # No data, loss starts at 0
-
-            for name, module in model.named_modules():
-                if name in linf_errors:
-                    lasso_strength = calculate_lasso_strength(linf_errors[name])
-                    for param in module.parameters():
-                        group_lasso = lasso_strength / 100 * param.pow(2).sum().sqrt()
-                        loss += group_lasso
-
-            # L1 regularization
-            l1_norm = sum(p.abs().sum() for p in model.parameters())
-            loss += l1_lambda * l1_norm
-
-            # Calculate L2 loss
-            l2_norm = sum(p.pow(2).sum() for p in model.parameters())
-            loss += weight_decay * l2_norm
-
-            # Scale gradients based on LinfError
-            for name, module in model.named_modules():
-                if name in linf_errors:
-                    scale_factor = calculate_lasso_strength(linf_errors[name])
-                    for param in module.parameters():
-                        if param.grad is not None:
-                            param.grad *= scale_factor
-
-            if loss != 0:
-                loss.backward()
-                freeze_pruned_weights(model)
-                optimizer.step()
-            epoch_loss += loss.item()  # type: ignore
-
-        scheduler.step()
-
-        if (epoch + 1) % 1000 == 0:
-            print(f"Epoch {epoch + 1}/{epochs} completed.")
-            print(f"Total Loss: {epoch_loss / len(train_dataloader)}")
-            print(f"L1 Loss: {l1_lambda * l1_norm.item()}")  # type: ignore
-            print(f"L2 Loss: {weight_decay * l2_norm.item()}")  # type: ignore
-
-    return model, optimizer
 
 
 # Example usage of the fine-tune function
@@ -1859,7 +1775,7 @@ param_grid = {
     "split": np.linspace(0.3, 1.0, 10, endpoint=False),
 }
 for value in param_grid.values():
-    shuffle(value)
+    random.shuffle(value)
 
 grid = ParameterGrid(param_grid)
 try:
