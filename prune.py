@@ -9,9 +9,9 @@ import torch.optim as optim
 import timm
 
 from training import fine_tune_model
-from utils import save_state
-from validation import evaluate, get_val_dataset
-from pruning import (
+from src.utils import save_state
+from src.validation import evaluate, get_val_dataset
+from src.pruning import (
     count_nonzero_params,
     count_total_params,
     prune_model,
