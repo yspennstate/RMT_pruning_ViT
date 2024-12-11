@@ -8,21 +8,6 @@ def save_checkpoint(checkpoint, filename, model_save_path):
     print(f"Checkpoint saved to {full_path}")
 
 
-def load_checkpoint(model, filename, model_save_path, optimizer=None):
-    full_path = os.path.join(model_save_path, filename)
-    if os.path.exists(full_path):
-        print(f"Loading checkpoint from {full_path}")
-        checkpoint = torch.load(full_path)
-        model.load_state_dict(checkpoint["state_dict"])
-        if optimizer and "optimizer_state" in checkpoint:
-            optimizer.load_state_dict(checkpoint["optimizer_state"])
-        print("Checkpoint loaded successfully.")
-        return checkpoint
-    else:
-        print("No checkpoint found.")
-        return None
-
-
 def save_state(
     model,
     optimizer,
@@ -35,8 +20,6 @@ def save_state(
     total_num_para,
     model_save_path,
 ):
-    print(f"Inside save_state - Type of model: {type(model)}")
-    print(f"Inside save_state - Type of optimizer: {type(optimizer)}")
 
     state = {
         "state_dict": model.state_dict(),
