@@ -8,7 +8,6 @@ import torchvision.datasets as datasets
 
 
 def validate(val_loader, model, criterion, args):
-
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
