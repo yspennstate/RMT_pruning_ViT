@@ -8,7 +8,7 @@ from torchvision.models import ViT_B_16_Weights
 import torch.optim as optim
 import timm
 
-from training import fine_tune_model
+from src.training import fine_tune_model
 from src.utils import save_state
 from src.validation import evaluate, get_val_dataset
 from src.pruning import (
