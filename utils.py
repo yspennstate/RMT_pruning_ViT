@@ -34,8 +34,6 @@ def save_state(
     accuracies5,
     total_num_para,
     model_save_path,
-    train_indices=None,
-    val_indices=None,
 ):
     print(f"Inside save_state - Type of model: {type(model)}")
     print(f"Inside save_state - Type of optimizer: {type(optimizer)}")
@@ -49,8 +47,6 @@ def save_state(
         "accuracies1": accuracies1,
         "accuracies5": accuracies5,
         "total_num_para": total_num_para,
-        "train_indices": train_indices,  # Saving the train indices
-        "val_indices": val_indices,  # Saving the validation indices
     }
     filename = f"{filename_prefix}_cycle_{cycle_index}.pth.tar"
     save_checkpoint(state, filename, model_save_path)
