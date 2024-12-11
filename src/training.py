@@ -1,5 +1,4 @@
 from pruning import freeze_pruned_weights, get_base_name, calculate_lasso_strength
-import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -18,14 +17,10 @@ def fine_tune_model(model, i, epochs, lr, l1_lambda, weight_decay, linf_errors):
         for name, module in model.named_modules():
             base_name = get_base_name(name)
             if base_name in linf_errors:
-                # print(base_name)
-                # print(linf_errors)
                 lasso_strength = calculate_lasso_strength(linf_errors[base_name], i)
                 for param in module.parameters():
                     group_lasso = lasso_strength / 1000000 * param.pow(2).sum().sqrt()
                     total_loss += group_lasso
-                    # print(group_lasso)
-                    # print('total loss', total_loss)
 
         # L1 regularization
         l1_norm = sum(p.abs().sum() for p in model.parameters())
@@ -45,11 +40,8 @@ def fine_tune_model(model, i, epochs, lr, l1_lambda, weight_decay, linf_errors):
                     for param in module.parameters():
                         if param.grad is not None:
                             param.grad *= scale_factor
-                            # print(param.grad)  # Add this check
-                            # print('check')
 
         freeze_pruned_weights(model)
-        # total_loss.backward()
         optimizer.step()
         scheduler.step()
 
