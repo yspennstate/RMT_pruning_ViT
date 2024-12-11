@@ -232,8 +232,6 @@ for i in range(last_completed_cycle + 1, n_prune_cycles):
     # model = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_patch16_224', pretrained=True)
     # model.to(device)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
     GOF = 1
 
     model.to(device)
@@ -341,8 +339,6 @@ for i in range(last_completed_cycle + 1, n_prune_cycles):
         model_save_path=model_save_path,
     )
 
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 unpruned_resnet = timm.create_model("vit_large_patch16_224", pretrained=True).to(device)
 
@@ -572,129 +568,6 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-
-class TestDataset(Dataset):
-
-    def __init__(self, path, transform=None):
-
-        self.image_paths = glob.glob(path + "*.JPEG")
-
-        self.transform = transform
-
-    def __getitem__(self, index):
-
-        path = self.image_paths[index]
-
-        x = Image.open(path).convert("RGB")
-
-        if self.transform is not None:
-
-            x = self.transform(x)
-
-        return path.split("/")[-1], x
-
-    def __len__(self):
-
-        return len(self.image_paths)
-
-
-# here preprocess is the same as the one used in train and val datasets
-
-test_dataset = TestDataset("./imagenet/test/", transform=preprocess)
-
-testloader = DataLoader(test_dataset, batch_size=100, shuffle=False)
-
-
-# Then the evaluation code is:
-
-
-def get_test_submission(model, dataloader, device):
-
-    model.eval()
-
-    # prepare a df for submission
-
-    submission = pd.DataFrame(columns=[f"choice {i}" for i in range(1, 6)])
-
-    steps = 0
-
-    with torch.no_grad():
-
-        for paths, images in dataloader:
-
-            images = images.to(device)
-
-            outputs = model(images)
-
-            # get top 5 predictions
-
-            _, predicted = torch.topk(outputs, 5)
-
-            submission_batch = pd.DataFrame(
-                data=predicted.cpu().numpy(), columns=submission.columns, index=paths
-            )
-
-            submission = pd.concat([submission, submission_batch])
-
-            steps += 1
-
-            if steps == 20:
-
-                break
-
-    # sort submission by index
-
-    submission = submission.sort_index()
-
-    return submission
-
-
-# You can get the submission by running:
-
-submission = get_test_submission(model, testloader, device)
-
-submission.to_csv("submission.csv", index=False, header=False)
-
-
-def select_models(
-    accuracies1,
-    accuracies5,
-    total_num_para,
-    num_params_unpruned,
-    target_reductions=[25, 40],
-):
-    best_top1_model = np.argmax(accuracies1)
-    best_top5_model = np.argmax(accuracies5)
-
-    closest_25_model = min(
-        range(len(total_num_para)),
-        key=lambda i: abs(total_num_para[i] - num_params_unpruned * 0.75),
-    )
-    closest_40_model = min(
-        range(len(total_num_para)),
-        key=lambda i: abs(total_num_para[i] - num_params_unpruned * 0.60),
-    )
-
-    return best_top1_model, best_top5_model, closest_25_model, closest_40_model
-
-
-best_top1, best_top5, closest_25, closest_40 = select_models(
-    accuracies1, accuracies5, total_num_para, num_params_unpruned
-)
-
-
-selected_models = [best_top1, best_top5, closest_25, closest_40]
-unique_selected_models = set(selected_models)  # Remove duplicates
-
-for model_idx in unique_selected_models:
-    model_path = os.path.join(model_save_path, f"model_pruned_{model_idx}.pth")
-    model.load_state_dict(torch.load(model_path))
-
-    submission = get_test_submission(model, testloader, device)
-    submission.to_csv(f"submission_model_{model_idx}.csv", index=False, header=False)
-    print(f"Evaluation complete for model {model_idx}")
-
-
 # %%
 
 
@@ -709,9 +582,6 @@ for model_idx in unique_selected_models:
 
 # %%
 
-
-# Device configuration
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load the pre-trained model
 # Set img_size to 288 for the training model
@@ -889,7 +759,6 @@ z = [z_start - (z_start - z_end) * k / (m - 1) for k in range(m)]
 ratio = [1 + 0.0 * k / (m - 1) for k in range(m)]
 resnets = [timm.create_model("vit_base_patch16_224", pretrained=True) for k in range(m)]
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 unpruned_resnet = timm.create_model("vit_base_patch16_224", pretrained=True)
 
@@ -1032,7 +901,6 @@ for j in range(m):
     total_num_para.append(num_nonzero)
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unpruned_resnet = unpruned_resnet.to(device)
 
 num_params_unpruned = count_total_params(unpruned_resnet)
@@ -1318,8 +1186,6 @@ plt.show()
 
 # %%
 
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 unpruned_resnet = timm.create_model("vit_base_patch16_224", pretrained=True)
 
@@ -1456,7 +1322,6 @@ plt.show()
 # %%
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unpruned_resnet = unpruned_resnet.to(device)
 
 num_params_unpruned = count_total_params(unpruned_resnet)
@@ -1744,7 +1609,6 @@ plt.show()
 
 # %%
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unpruned_resnet = unpruned_resnet.to(device)
 
 num_params_unpruned = count_total_params(unpruned_resnet)
