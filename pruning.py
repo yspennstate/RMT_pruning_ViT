@@ -2,7 +2,6 @@ import torch
 from SplittableLayers import (
     SplittableConv,
     SplittableLinear,
-    SplittableMultiHeadAttention,
 )
 
 
@@ -88,17 +87,6 @@ def replace_layers(m, alpha, beta, goodnessOfFitCutoff, depth=0):
                 m,
                 name,
                 SplittableLinear.from_layer(
-                    module,
-                    alpha=alpha,
-                    beta=beta,
-                    goodnessOfFitCutoff=goodnessOfFitCutoff,
-                ),
-            )
-        if type_str == "attention":
-            setattr(
-                m,
-                name,
-                SplittableMultiHeadAttention.from_layer(
                     module,
                     alpha=alpha,
                     beta=beta,
