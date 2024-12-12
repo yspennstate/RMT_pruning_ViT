@@ -1,6 +1,7 @@
 # Efficient Pruning of Vision Transformers using Random Matrix Theory
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-1.8%2B-red)
 ![Last Commit](https://img.shields.io/github/last-commit/yspennstate/RMT_pruning_ViT)
 
 This repository contains the implementation of the paper Efficient Pruning of Vision Transformers using Random Matrix Theory. The code provides tools to prune Vision Transformers (ViTs) using insights from Random Matrix Theory (RMT) for significant parameter reduction with minimal accuracy loss.
