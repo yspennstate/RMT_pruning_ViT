@@ -29,7 +29,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-
 # Set device for computation
 device = torch.device(args.device if torch.cuda.is_available() else "cpu")
 preprocess = ViT_B_16_Weights.IMAGENET1K_SWAG_LINEAR_V1.transforms()
@@ -44,7 +43,6 @@ learning_rate = 0.05e-6  # Learning rate for fine-tuning
 l1_lambda = 0.0000005  # Adjust as needed for L1 regularization
 weight_decay = 0.0000002  # Adjust as needed for L2 regularization
 GoF = 1
-
 
 # Revised training and pruning loop
 accuracies1, accuracies5, total_num_para = [], [], []
@@ -92,7 +90,6 @@ accuracies1.append(top1_unpruned)
 accuracies5.append(top5_unpruned)
 total_num_para.append(model)
 
-
 # Pruning loop
 for i in range(1, n_prune_cycles):
     print(f"Starting pruning cycle {i}")
@@ -103,7 +100,7 @@ for i in range(1, n_prune_cycles):
         try:
             module.goodnessOfFitCutoff
             layers.append((name, module))
-        except:
+        except AttributeError:
             pass
 
     target_reduction = 0.06 * 1.02**i

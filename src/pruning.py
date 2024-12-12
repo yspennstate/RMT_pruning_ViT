@@ -6,12 +6,28 @@ from SplittableLayers import (
 
 
 def naive_prune(layer, threshold):
+    """
+    Prune the weights of a layer by setting values below a threshold to zero.
+
+    Parameters:
+    layer (torch.nn.Module): The layer to prune.
+    threshold (float): The threshold below which weights are set to zero.
+    """
     with torch.no_grad():
         weight_mask = torch.abs(layer.weight) > threshold
         layer.weight *= weight_mask.float()
 
 
 def count_nonzero_params(model):
+    """
+    Count the number of non-zero parameters in a model.
+
+    Parameters:
+    model (torch.nn.Module): The model to count parameters for.
+
+    Returns:
+    int: The number of non-zero parameters.
+    """
     count = 0
     for param in model.parameters():
         count += torch.count_nonzero(param).item()
@@ -19,6 +35,15 @@ def count_nonzero_params(model):
 
 
 def count_total_params(models):
+    """
+    Count the total number of parameters in a model or list of models.
+
+    Parameters:
+    models (torch.nn.Module or list): The model or list of models to count parameters for.
+
+    Returns:
+    int: The total number of parameters.
+    """
     if isinstance(models, list):
         return sum(p.numel() for model in models for p in model.parameters())
     else:
@@ -26,6 +51,16 @@ def count_total_params(models):
 
 
 def replace_layers(m, alpha, beta, goodnessOfFitCutoff, depth=0):
+    """
+    Replace layers in a model with splittable layers.
+
+    Parameters:
+    m (torch.nn.Module): The model to replace layers in.
+    alpha (float): Alpha parameter for Splittable layers.
+    beta (float): Beta parameter for Splittable layers.
+    goodnessOfFitCutoff (float): Goodness of fit cutoff for Splittable layers.
+    depth (int): Current depth of recursion, default is 0.
+    """
     replacable_layers = {}
     for name, module in m.named_children():
         if name == "":
@@ -78,6 +113,19 @@ def replace_layers(m, alpha, beta, goodnessOfFitCutoff, depth=0):
 
 
 def prune_model(model, target_reduction, i, n_prune_cycles, device):
+    """
+    Prune the model to achieve a target reduction in parameters.
+
+    Parameters:
+    model (torch.nn.Module): The model to prune.
+    target_reduction (float): The target reduction in parameters.
+    i (int): Current pruning cycle.
+    n_prune_cycles (int): Total number of pruning cycles.
+    device (torch.device): The device to move parameters to.
+
+    Returns:
+    dict: Dictionary of Linf errors for each layer.
+    """
     linf_errors = {}
     splittable_layers = [
         (name, module)
@@ -100,12 +148,10 @@ def prune_model(model, target_reduction, i, n_prune_cycles, device):
             result, splus, LinfError, percentage_less_than_splus = layer.split(
                 1, scale * 750 * 0.000000015 * target_reduction * N * M
             )  # type: ignore
-            print(result)
         else:
             result, splus, LinfError, percentage_less_than_splus = layer.split(
                 1, 0
             )  # type: ignore
-            print("skip")
         linf_errors[name] = LinfError
 
         while (
@@ -140,7 +186,6 @@ def prune_model(model, target_reduction, i, n_prune_cycles, device):
             num_nonzero_now = count_nonzero_params(layer)
 
     num_nonzero = count_nonzero_params(model)
-    print(num_nonzero)
     for name, param in model.named_parameters():
         if param.device.type == "cpu":
             param.data = param.data.to(device)
@@ -148,6 +193,12 @@ def prune_model(model, target_reduction, i, n_prune_cycles, device):
 
 
 def freeze_pruned_weights(model):
+    """
+    Freeze the pruned weights of a model by setting their gradients to zero.
+
+    Parameters:
+    model (torch.nn.Module): The model to freeze pruned weights for.
+    """
     for name, param in model.named_parameters():
         if param.requires_grad and param.grad is not None:
             # Set the gradients of the pruned weights to zero where the parameter data is zero
@@ -155,11 +206,29 @@ def freeze_pruned_weights(model):
 
 
 def calculate_lasso_strength(linf_error, i):
-    # print('check')
+    """
+    Calculate the Lasso strength based on Linf error and pruning cycle.
+
+    Parameters:
+    linf_error (float): The Linf error.
+    i (int): The current pruning cycle.
+
+    Returns:
+    float: The Lasso strength.
+    """
     return 1 / (1 + 10000 * linf_error / (i))
 
 
 def get_base_name(name):
+    """
+    Get the base name of a layer, removing specific suffixes.
+
+    Parameters:
+    name (str): The name of the layer.
+
+    Returns:
+    str: The base name of the layer.
+    """
     parts = name.split(".")
     if parts[-1] in ["layer_1", "layer_2"]:
         return ".".join(parts[:-1])

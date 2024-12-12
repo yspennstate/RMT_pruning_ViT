@@ -3,10 +3,21 @@ from scipy.integrate import quad
 import scipy
 import numpy as np
 import matplotlib.pyplot as plt
-from TracyWidom import TracyWidom  # type: ignore
+from TracyWidom import TracyWidom
 
 
 def mpDensity(ndf, pdim, var=1):
+    """
+    Calculate the Marcenko-Pastur density bounds.
+
+    Parameters:
+    ndf (int): Number of degrees of freedom.
+    pdim (int): Dimensionality of the data.
+    var (float): Variance, default is 1.
+
+    Returns:
+    tuple: Lower and upper bounds of the Marcenko-Pastur density.
+    """
     gamma = ndf / pdim
     inv_gamma_sqrt = math.sqrt(1 / gamma)
     a = var * (1 - inv_gamma_sqrt) ** 2
@@ -15,12 +26,22 @@ def mpDensity(ndf, pdim, var=1):
 
 
 def dmp(x, ndf, pdim, var=1, log=False):
+    """
+    Calculate the Marcenko-Pastur density.
+
+    Parameters:
+    x (float): Point at which to evaluate the density.
+    ndf (int): Number of degrees of freedom.
+    pdim (int): Dimensionality of the data.
+    var (float): Variance, default is 1.
+    log (bool): If True, return the log density, default is False.
+
+    Returns:
+    float: The Marcenko-Pastur density at point x.
+    """
     gamma = ndf / pdim
-
     a, b = mpDensity(ndf, pdim, var)
-
     if not log:
-        # we have to handle +/- zero carefully when gamma=1
         if gamma == 1 and x == 0 and 1 / x > 0:
             d = math.inf
         elif x <= a and x >= b:
@@ -39,11 +60,24 @@ def dmp(x, ndf, pdim, var=1, log=False):
                 + 0.5 * math.log(x - a)
                 + 0.5 * math.log(b - x)
             )
-
     return d
 
 
 def pmp(q, ndf, pdim, var=1, lower_tail=True, log_p=False):
+    """
+    Calculate the cumulative distribution function of the Marcenko-Pastur distribution.
+
+    Parameters:
+    q (float): Quantile to evaluate.
+    ndf (int): Number of degrees of freedom.
+    pdim (int): Dimensionality of the data.
+    var (float): Variance, default is 1.
+    lower_tail (bool): If True, return the lower tail probability, default is True.
+    log_p (bool): If True, return the log probability, default is False.
+
+    Returns:
+    float: The cumulative probability at quantile q.
+    """
     gamma = ndf / pdim
     a, b = mpDensity(ndf, pdim, var)
     f = lambda x: dmp(x, ndf, pdim, var)
@@ -73,6 +107,20 @@ def pmp(q, ndf, pdim, var=1, lower_tail=True, log_p=False):
 
 
 def qmp(p, ndf, pdim, var=1, lower_tail=True, log_p=False):
+    """
+    Calculate the quantile function of the Marcenko-Pastur distribution.
+
+    Parameters:
+    p (float): Probability to evaluate.
+    ndf (int): Number of degrees of freedom.
+    pdim (int): Dimensionality of the data.
+    var (float): Variance, default is 1.
+    lower_tail (bool): If True, return the lower tail quantile, default is True.
+    log_p (bool): If True, p is given as log(p), default is False.
+
+    Returns:
+    float: The quantile corresponding to probability p.
+    """
     svr = ndf / pdim
     if lower_tail:
         p = p
@@ -102,9 +150,20 @@ def qmp(p, ndf, pdim, var=1, lower_tail=True, log_p=False):
     return q
 
 
-# bema_inside is where the BEMA algorithm is calculated
-# use bema_mat_wrapper instead
 def bema_inside(pdim, ndf, eigs, alpha, beta):
+    """
+    BEMA algorithm calculation.
+
+    Parameters:
+    pdim (int): Dimensionality of the data.
+    ndf (int): Number of degrees of freedom.
+    eigs (array): Eigenvalues.
+    alpha (float): Alpha parameter.
+    beta (float): Beta parameter.
+
+    Returns:
+    tuple: sigma_sq, lamda_plus, l2
+    """
     pTilde = min(pdim, ndf)
     gamma = pdim / ndf
     ev = np.sort(eigs)
@@ -131,79 +190,38 @@ def bema_inside(pdim, ndf, eigs, alpha, beta):
     return sigma_sq, lamda_plus, l2
 
 
-# use this function to compute bema
-def bema_mat_wrapper(
-    matrix, pReal, nReal, alpha, beta, goodnessOfFitCutoff, show=False
-):
-    # this block uses the fact that eigenvalues are invariant under transposition
-    # and hence without loss of generality our input matrix is p x n where
-    # p <= n. This is used to ensure that our matrix has all positive singular values
-    if pReal <= nReal:
-        p = pReal
-        n = nReal
-        matrix_norm = np.matmul(matrix, matrix.transpose()) / nReal
-    else:
-        p = nReal
-        n = pReal
-        matrix_norm = np.matmul(matrix.transpose(), matrix) / nReal
-
-    v = np.linalg.eigvalsh(matrix_norm)
-    sigma_sq, lamda_plus, l2 = bema_inside(p, n, v, alpha, beta)
-    pTilde = min(p, n)
-    LinfError = error(v, alpha, pTilde, p / n, sigma_sq)
-    gamma = p / n
-    goodFit = True if LinfError < goodnessOfFitCutoff else False
-    if show:
-        print("error", LinfError)
-        plt.hist(
-            v[-min(p, n) :],
-            bins=100,
-            color="black",
-            label="Empirical Density",
-            density=True,
-        )
-        # plt.axvline(x=lamda_plus, label = "Predicted Lambda Plus", color = "blue")
-        Z = v[-min(p, n) :]
-        for t in range(len(Z)):
-            if Z[t] > lamda_plus:
-                Z = Z[:t]
-                break
-        Y = MP_Density_Wrapper(gamma, sigma_sq, Z)
-        # plt.plot(Z,Y, color = "orange", label = "Predicted Density")
-        plt.axvline(x=lamda_plus, label="Lambda Plus", color="red")
-        plt.legend()
-        plt.title("Empirical Distribution Density")
-        plt.show()
-
-        eigsTruncated = [i for i in v[-min(p, n) :] if i < lamda_plus]
-        plt.hist(
-            eigsTruncated,
-            bins=100,
-            color="black",
-            label="Truncated Empirical Density",
-            density=True,
-        )
-        plt.plot(Z, Y, color="orange", label="Predicted Density")
-        plt.legend()
-        plt.title("Density Comparison Zoomed")
-        plt.show()
-
-    return v, p / n, sigma_sq, lamda_plus, goodFit
-
-
-# helper MP density function evaluated at x
 def MP_Density_Inner(gamma, sigma_sq, x):
+    """
+    Helper function to compute MP density.
+
+    Parameters:
+    gamma (float): Ratio of dimensions.
+    sigma_sq (float): Variance.
+    x (float): Point at which to evaluate the density.
+
+    Returns:
+    float: The MP density at point x.
+    """
     lp = sigma_sq * pow(1 + math.sqrt(gamma), 2)
     lm = sigma_sq * pow(1 - math.sqrt(gamma), 2)
     dv = math.sqrt((lp - x) * (x - lm)) / (gamma * x * 2 * math.pi * sigma_sq)
     return dv
 
 
-# at the sampled points, compute the MP distribution density
 def MP_Density_Wrapper(gamma, sigma_sq, samplePoints):
+    """
+    Compute MP density at sample points.
+
+    Parameters:
+    gamma (float): Ratio of dimensions.
+    sigma_sq (float): Variance.
+    samplePoints (array): Points at which to evaluate the density.
+
+    Returns:
+    array: MP density at sample points.
+    """
     lp = sigma_sq * pow(1 + math.sqrt(gamma), 2)
     lm = sigma_sq * pow(1 - math.sqrt(gamma), 2)
-
     y = []
     for i in samplePoints:
         if lm <= i and i <= lp:
@@ -213,12 +231,21 @@ def MP_Density_Wrapper(gamma, sigma_sq, samplePoints):
     return np.array(y)
 
 
-# helper function to compute MP CDF
 def MP_CDF_inner(gamma, sigma_sq, x):
+    """
+    Helper function to compute MP CDF.
+
+    Parameters:
+    gamma (float): Ratio of dimensions.
+    sigma_sq (float): Variance.
+    x (float): Point at which to evaluate the CDF.
+
+    Returns:
+    float: The MP CDF at point x.
+    """
     lp = sigma_sq * pow(1 + math.sqrt(gamma), 2)
     lm = sigma_sq * pow(1 - math.sqrt(gamma), 2)
     r = math.sqrt((lp - x) / (x - lm))
-
     F = math.pi * gamma + (1 / sigma_sq) * math.sqrt((lp - x) * (x - lm))
     F += -(1 + gamma) * math.atan((r * r - 1) / (2 * r))
     if gamma != 1:
@@ -229,11 +256,20 @@ def MP_CDF_inner(gamma, sigma_sq, x):
     return F
 
 
-# at the sample points compute the theoretical MP CDF
 def MP_CDF(gamma, sigma_sq, samplePoints):
+    """
+    Compute MP CDF at sample points.
+
+    Parameters:
+    gamma (float): Ratio of dimensions.
+    sigma_sq (float): Variance.
+    samplePoints (array): Points at which to evaluate the CDF.
+
+    Returns:
+    array: MP CDF at sample points.
+    """
     lp = sigma_sq * pow(1 + math.sqrt(gamma), 2)
     lm = sigma_sq * pow(1 - math.sqrt(gamma), 2)
-
     output = []
     for x in samplePoints:
         if gamma <= 1:
@@ -256,10 +292,33 @@ def MP_CDF(gamma, sigma_sq, samplePoints):
 
 
 def empiricalCDF(S):
+    """
+    Compute empirical CDF.
+
+    Parameters:
+    S (array): Sample points.
+
+    Returns:
+    array: Empirical CDF values.
+    """
     return np.array([(i) / len(S) for i in range(len(S))])
 
 
 def error(singular_values, alpha, pTilde, gamma, sigma_sq, show=False):
+    """
+    Compute error between theoretical and empirical CDFs.
+
+    Parameters:
+    singular_values (array): Singular values.
+    alpha (float): Alpha parameter.
+    pTilde (int): Number of pruned singular values.
+    gamma (float): Ratio of dimensions.
+    sigma_sq (float): Variance.
+    show (bool): If True, display plots, default is False.
+
+    Returns:
+    float: The error between theoretical and empirical CDFs.
+    """
     pTilde = len(singular_values)
     ind = np.arange(int(alpha * pTilde), int((1 - alpha) * pTilde))
     prunedSingularValues = singular_values[ind]

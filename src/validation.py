@@ -8,6 +8,19 @@ import torchvision.datasets as datasets
 
 
 def validate(val_loader, model, criterion, args):
+    """
+    Validates the model on the given validation data loader.
+
+    Args:
+        val_loader (torch.utils.data.DataLoader): Validation data loader.
+        model (torch.nn.Module): The model to validate.
+        criterion (torch.nn.Module): Loss function.
+        args (argparse.Namespace): Arguments containing configuration.
+
+    Returns:
+        tuple: Average top-1 and top-5 accuracy.
+    """
+
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
@@ -18,17 +31,17 @@ def validate(val_loader, model, criterion, args):
                 if torch.cuda.is_available():
                     target = target.cuda(args.gpu, non_blocking=True)
 
-                # compute output
+                # Compute output and loss
                 output = model(images)
                 loss = criterion(output, target)
 
-                # measure accuracy and record loss
+                # Measure accuracy and record loss
                 acc1, acc5 = accuracy(output, target, topk=(1, 5))
                 losses.update(loss.item(), images.size(0))
                 top1.update(acc1[0], images.size(0))
                 top5.update(acc5[0], images.size(0))
 
-                # measure elapsed time
+                # Measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
 
@@ -49,7 +62,7 @@ def validate(val_loader, model, criterion, args):
         prefix="Test: ",
     )
 
-    # switch to evaluate mode
+    # Switch to evaluate mode
     model.eval()
 
     run_validate(val_loader)
@@ -186,7 +199,6 @@ class arg_input:
         workers=4,
         multiprocessing_distributed=False,
     ) -> None:
-
         self.gpu = gpu
         self.print_freq = print_freq
         self.world_size = world_size
@@ -195,12 +207,32 @@ class arg_input:
 
 
 def evaluate(loader, resnet, device):
+    """
+    Evaluates the model on the given data loader.
+
+    Args:
+        loader (torch.utils.data.DataLoader): Data loader.
+        resnet (torch.nn.Module): The model to evaluate.
+        device (torch.device): The device to run the evaluation on.
+
+    Returns:
+        tuple: Average top-1 and top-5 accuracy.
+    """
     return validate(
         loader, resnet, torch.nn.CrossEntropyLoss().to(device), arg_input(gpu=device)
     )
 
 
 def get_val_dataset(preprocess):
+    """
+    Gets the validation dataset with the specified preprocessing.
+
+    Args:
+        preprocess (torchvision.transforms.Compose): Preprocessing transformations.
+
+    Returns:
+        torch.utils.data.DataLoader: Data loader for the validation dataset.
+    """
     val_dataset = datasets.ImageFolder("imagenet/val", transform=preprocess)
 
     subset_size = 10000
