@@ -6,7 +6,7 @@
 This repository contains the implementation of the paper Efficient Pruning of Vision Transformers using Random Matrix Theory. The code provides tools to prune Vision Transformers (ViTs) using insights from Random Matrix Theory (RMT) for significant parameter reduction with minimal accuracy loss.
 
 
-![Accuracy vs. Parameters Kept for ViT-Base. The model achieves substantial pruning with negligible accuracy loss.](./images/VITL_top1.png)
+![Accuracy vs. Parameters Kept for ViT-Base. The model achieves substantial pruning with negligible accuracy loss.](./images/VIT_accuracies.png)
 
 *Figure: Accuracy vs. Parameters Kept for ViT-Base. The model achieves substantial pruning with negligible accuracy loss.*
 
