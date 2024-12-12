@@ -34,7 +34,7 @@ This project introduces an RMT-based pruning framework that efficiently reduces 
   - [src/RMT.py](src/RMT.py): Core Random Matrix Theory implementations.
   - [src/pruning.py](src/pruning.py): Functions for pruning the model.
 - [prune.py](prune.py): Main script for pruning and fine-tuning.
-- [fine_tune.py](fine_tune.py): Script for fine-tuning a pre-trained model.
+- [fine_tune.py](fine_tune.py): Script for fine-tuning a pruned model.
 
 # Installation
 
